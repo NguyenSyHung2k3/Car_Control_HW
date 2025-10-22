@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "E:/Project1/platformIO"
+		},
+		{
+			"name": "IoT_Car",
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"string": "cpp"
+		}
+	}
+}
