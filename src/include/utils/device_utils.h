@@ -7,6 +7,4 @@
 
 namespace DeviceUtils {
     String getMacAddress();
-    void handleLedOn();
-    void handleLedOff();
 }

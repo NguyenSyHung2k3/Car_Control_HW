@@ -6,11 +6,20 @@
 void connectToWifi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
+    attempts++;
   }
-  Serial.println("\nWiFi connected, IP: " + WiFi.localIP().toString());
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi connected, IP: " + WiFi.localIP().toString());
+  } else {
+    Serial.println("\nWiFi connection failed!");
+    ESP.restart();
+  }
 }
 
 // Check if WiFi is connected

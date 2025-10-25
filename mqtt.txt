@@ -1,0 +1,251 @@
+# MQTT Connection Flow - ESP32 IoT Car
+
+## 1. MQTT Initialization Flow
+
+### Setup Phase:
+```
+1. WiFi Connection
+   ├── connectToWifi()
+   ├── WiFi.begin(WIFI_SSID, WIFI_PASSWORD)
+   ├── Wait for connection (max 20 attempts)
+   └── Serial.println("WiFi connected")
+
+2. MQTT Client Creation
+   ├── mqttClient = MqttClient::getInstance()
+   ├── Singleton pattern ensures single instance
+   └── Client ID = Device MAC Address
+
+3. MQTT Connection
+   ├── mqttClient->connect()
+   ├── Connect to MQTT broker
+   ├── Authentication with MQTT_USERNAME/MQTT_PASSWORD
+   └── Serial.println("MQTT connected!")
+
+4. MQTT Setup
+   ├── mqttClient->connectionPublish()
+   ├── mqttClient->connectionSubscribe()
+   ├── mqttClient->mqttMessageCallback()
+   └── Serial.println("MQTT initialized")
+```
+
+## 2. MQTT Connection Process
+
+### Connection Steps:
+```
+1. Device Status Publication
+   ├── Topic: "iot/{deviceId}/status"
+   ├── Payload: {"deviceId": "AA:BB:CC:DD:EE:FF", "status": "Connected"}
+   └── Purpose: Notify server device is online
+
+2. Server Confirmation Subscription
+   ├── Topic: "iot/{deviceId}/connected"
+   ├── Listen for: {"userId": "user123", "msg": "Connected"}
+   └── Purpose: Wait for server confirmation
+
+3. Server Response
+   ├── Topic: "iot/{userId}/{deviceId}/status"
+   ├── Payload: {"status": "OK"}
+   └── Purpose: Confirm connection to server
+
+4. Command Subscription
+   ├── Topic: "iot/{userId}/{deviceId}/command"
+   ├── Listen for: Motor control commands
+   └── Purpose: Receive remote commands
+
+5. OTA Subscription
+   ├── Topic: "iot/{userId}/{deviceId}/ota"
+   ├── Listen for: OTA update commands
+   └── Purpose: Handle firmware updates
+```
+
+## 3. MQTT Message Flow
+
+### Incoming Messages:
+```
+1. Connection Confirmation
+   ├── Topic: "iot/{deviceId}/connected"
+   ├── Payload: {"userId": "user123", "msg": "Connected"}
+   ├── Action: Set g_userId, g_isConnected = true
+   └── Response: Publish OK to "iot/{userId}/{deviceId}/status"
+
+2. Motor Commands (if implemented)
+   ├── Topic: "iot/{userId}/{deviceId}/command"
+   ├── Payload: {"command": "F", "msg": "forward"}
+   ├── Action: Process motor command
+   └── Response: Publish result to "iot/{userId}/{deviceId}/response"
+
+3. OTA Commands
+   ├── Topic: "iot/{userId}/{deviceId}/ota"
+   ├── Payload: {"action": "CHECK_UPDATE"}
+   ├── Action: Handle OTA update
+   └── Response: Publish status to "iot/{userId}/{deviceId}/response"
+```
+
+### Outgoing Messages:
+```
+1. Device Status
+   ├── Topic: "iot/{deviceId}/status"
+   ├── Payload: {"deviceId": "AA:BB:CC:DD:EE:FF", "status": "Connected"}
+   └── Frequency: Once on startup
+
+2. Server Confirmation
+   ├── Topic: "iot/{userId}/{deviceId}/status"
+   ├── Payload: {"status": "OK"}
+   └── Frequency: After server confirmation
+
+3. Command Responses
+   ├── Topic: "iot/{userId}/{deviceId}/response"
+   ├── Payload: {"status": "OK", "message": "Command executed"}
+   └── Frequency: After each command
+
+4. OTA Status
+   ├── Topic: "iot/{userId}/{deviceId}/ota/status"
+   ├── Payload: {"status": "checking", "message": "Checking for updates"}
+   └── Frequency: During OTA operations
+```
+
+## 4. MQTT Topics Structure
+
+### Publish Topics:
+```
+iot/{deviceId}/status                    - Device online status
+iot/{userId}/{deviceId}/status          - Server confirmation
+iot/{userId}/{deviceId}/response        - Command responses
+iot/{userId}/{deviceId}/ota/status      - OTA status updates
+```
+
+### Subscribe Topics:
+```
+iot/{deviceId}/connected                 - Server connection confirmation
+iot/{userId}/{deviceId}/command         - Motor control commands
+iot/{userId}/{deviceId}/ota             - OTA update commands
+```
+
+## 5. MQTT Connection States
+
+### Connection States:
+```
+1. DISCONNECTED
+   ├── Initial state
+   ├── No MQTT communication
+   └── g_isConnected = false
+
+2. CONNECTING
+   ├── Attempting to connect to broker
+   ├── Publishing device status
+   └── Waiting for server confirmation
+
+3. CONNECTED
+   ├── Successfully connected to server
+   ├── g_isConnected = true
+   ├── g_userId is set
+   └── Ready for commands
+
+4. ERROR
+   ├── Connection failed
+   ├── Retry connection
+   └── Log error messages
+```
+
+## 6. Error Handling
+
+### Connection Errors:
+```
+1. WiFi Connection Failed
+   ├── Timeout after 20 attempts
+   ├── ESP.restart()
+   └── Retry from beginning
+
+2. MQTT Connection Failed
+   ├── Timeout after 10 attempts
+   ├── Log "MQTT connection failed!"
+   └── Continue without MQTT
+
+3. JSON Parse Error
+   ├── Log "JSON parse error"
+   ├── Skip message
+   └── Continue processing
+
+4. Unknown Commands
+   ├── Log "Unknown command"
+   ├── Send error response
+   └── Continue processing
+```
+
+## 7. MQTT Loop Processing
+
+### Main Loop:
+```
+void loop() {
+  // Handle BLE (highest priority)
+  ble.loop();
+  
+  // Handle MQTT messages
+  if (mqttClient) {
+    mqttClient->loop();
+  }
+  
+  // Non-blocking debug
+  // Small delay to prevent watchdog reset
+}
+```
+
+### MQTT Loop Tasks:
+```
+1. Process incoming messages
+2. Handle connection status
+3. Send periodic heartbeats
+4. Process OTA updates
+5. Handle command responses
+```
+
+## 8. Configuration
+
+### Required Settings in secrets.h:
+```
+#define WIFI_SSID "your_wifi_ssid"
+#define WIFI_PASSWORD "your_wifi_password"
+#define MQTT_BROKER "your_mqtt_broker"
+#define MQTT_PORT 1883
+#define MQTT_USERNAME "your_mqtt_username"
+#define MQTT_PASSWORD "your_mqtt_password"
+```
+
+## 9. Debug Information
+
+### Serial Monitor Output:
+```
+Starting ESP32 IoT Car...
+Motor initialized
+BLE initialized
+WiFi connected, IP: 192.168.1.100
+MQTT connected!
+MQTT initialized
+Setup completed!
+[Debug] System running...
+```
+
+## 10. Troubleshooting
+
+### Common Issues:
+```
+1. WiFi Connection Failed
+   - Check WIFI_SSID and WIFI_PASSWORD
+   - Verify network availability
+   - Check signal strength
+
+2. MQTT Connection Failed
+   - Check MQTT_BROKER, MQTT_PORT
+   - Verify MQTT_USERNAME, MQTT_PASSWORD
+   - Check broker availability
+
+3. JSON Parse Errors
+   - Check message format
+   - Verify JSON syntax
+   - Check message length
+
+4. Watchdog Reset
+   - Reduce delay() usage
+   - Use non-blocking approaches
+   - Add yield() calls
+```

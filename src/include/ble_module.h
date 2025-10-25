@@ -6,6 +6,7 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include "control/motor_control.h"
+#include "secrets.h"
 
 class BLEController {
   private:

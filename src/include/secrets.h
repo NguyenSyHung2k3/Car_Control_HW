@@ -11,6 +11,11 @@
 #define MQTT_PASSWORD "Hung091103"
 #define MQTT_CLIENT_ID "ESP32ClientID"
 
+// OTA Configuration
+#define OTA_SERVER_URL "http://192.168.1.100:8000"
+#define FIRMWARE_VERSION "1.0.0"
+#define OTA_CHECK_INTERVAL 3600000  // 1 hour in milliseconds
+
 // DEVICE CERT
 #define LED_PIN 2
 

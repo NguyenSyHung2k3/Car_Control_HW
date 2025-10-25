@@ -16,6 +16,11 @@ class MqttClient {
         int port;
         const char* clientId;
         bool connected;
+        bool isListeningMode;
+        unsigned long lastPublishTime;
+        unsigned long publishInterval;
+        unsigned long lastConnectionCheck;
+        unsigned long connectionCheckInterval;
 
         MqttClient(const char* broker, int port, const char* clientId);
         
@@ -42,5 +47,13 @@ class MqttClient {
     void connectionSubscribe();
 
     void mqttMessageCallback();
+
+    void otaSubscribe();
+
+    // New methods for continuous listening
+    void startContinuousListening();
+    void stopContinuousListening();
+    void checkConnectionStatus();
+    bool isInListeningMode();
 };
 
